@@ -2,7 +2,7 @@ Playback from Euterpea through Vivid
 Donya Quick
 
 > {-# LANGUAGE DataKinds, ExtendedDefaultRules #-}
-> module PlayV where
+> module VividEuterpea where
 > import Vivid
 > import Euterpea
 > import Control.Exception

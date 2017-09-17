@@ -3,7 +3,7 @@ Examples of real-time audio playback of Euterpea values using Vivid
 > {-# LANGUAGE DataKinds, ExtendedDefaultRules #-}
 > import Vivid hiding (forever, line)
 > import Euterpea
-> import PlayV
+> import VividEuterpea
 > import Data.List hiding (transpose)
 
 Let's define some music values.
