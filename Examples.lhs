@@ -21,21 +21,21 @@ along with a release AFTER the note-off would occur - which is not something
 that Euterpea's built-in sound synthesis supports.
 
 > sound1 :: VInstr
-> sound1 d ap _ = let d' = fromRational d in sd () $ do
+> sound1 d ap _ _ = let d' = fromRational d in sd () $ do
 >    wobble <- sinOsc (freq_ 5) ? KR ~* 10
 >    s <- 0.2 ~* sinOsc (freq_ $ midiCPS ap ~+ wobble)
 >    e <- envGen (env 1.0 [(1.0, d'), (0.0,0.25)] Curve_Linear) DoNothing
 >    out 0 [s ~* e ,s  ~* e]
 
 > sound2 :: VInstr
-> sound2 d ap _ = let d' = fromRational d in sd () $ do
+> sound2 d ap _ _ = let d' = fromRational d in sd () $ do
 >    wobble <- sinOsc (freq_ 15) ? KR ~* 30
 >    s <- 0.2 ~* sinOsc (freq_ $ midiCPS ap ~+ wobble)
 >    e <- envGen (env 0.0 [(1.0,0.1),(1.0, d'-0.1), (0.0,0.5)] Curve_Linear) DoNothing
 >    out 0 [s ~* e ,s  ~* e]
 
 > sound3 :: VInstr
-> sound3 d ap _ = let d' = fromRational d in sd () $ do
+> sound3 d ap _ _ = let d' = fromRational d in sd () $ do
 >    s <- 0.2 ~* sinOsc (freq_ $ midiCPS ap)
 >    e <- envGen (env 0.0 [(1.0,0.01),(1.0, d'-0.01), (0.0,0.25)] Curve_Linear) DoNothing
 >    out 0 [s ~* e ,s  ~* e]
@@ -87,7 +87,7 @@ Use Ctrl+C then Enter to stop.
 The code to create a bell sound in Euterpea:
 
  bellInstr :: Instr (AudSF () Double)
- bellInstr dur ap vol pfields = 
+ bellInstr dur ap vol params = -- note: params is a place holder and is not used
    let dur' = fromRational dur 
        f = apToHz ap
    in  proc () -> do
@@ -106,7 +106,7 @@ The code to create a bell sound in Euterpea:
 And using a Vivid-based instrument:
          
 > bellSynth :: VInstr
-> bellSynth _ ap v = let v' = fromIntegral v / 127.0 in sd () $ do
+> bellSynth _ ap v _ = let v' = fromIntegral v / 127.0 in sd () $ do
 >    x1 <- sinOsc (freq_ $ midiCPS ap)
 >    x2 <- sinOsc (freq_ $ midiCPS ap ~* 4.1)
 >    x3 <- sinOsc (freq_ $ midiCPS ap ~* 6.05)

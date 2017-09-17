@@ -13,15 +13,16 @@ and a volume from 0-127 (Volume) and returns a Vivid synthesizer. The
 VInstr type mirrors the Instr type used in Euterpea's offline sound 
 synthesis.
 
-> type VInstr = Dur -> AbsPitch -> Volume -> SynthDef '[]
+> type Params = [Double]
+> type VInstr = Dur -> AbsPitch -> Volume -> Params -> SynthDef '[]
 > data SynthInfo = SynthInfo {
 >     synthDef :: VInstr, -- sound generation function
 >     releaseTime :: Dur, -- what is the expected release time after note off?
 >     durDependent :: Bool -- does the sound depend on note duration? 
 >     }
 
-> toSynth :: SynthInfo -> AbsPitch -> Volume -> SynthDef '[]
-> toSynth e ap v = (synthDef e) (releaseTime e) ap v
+> toSynth :: SynthInfo -> AbsPitch -> Volume -> Params -> SynthDef '[]
+> toSynth e ap v p = (synthDef e) (releaseTime e) ap v p
 
 Lookup table type for synthesizers by an Instrumentname. Note that the 
 durDependent field should be True for sounds with a sustain region. 
@@ -35,7 +36,7 @@ default sound is a sine wave at a given note's frequency with
 a maximum amplitude of 0.3. The note's duration is ignored.
 
 > defaultSound :: VInstr
-> defaultSound _ ap _ = sd () $ do
+> defaultSound _ ap _ _ = sd () $ do
 >    s <- 0.3 ~* sinOsc (freq_ $ midiCPS ap)
 >    e <- envGen (env 1.0 [(0.0,0.25)] Curve_Linear) DoNothing
 >    out 0 [s ~* e, s ~* e]
@@ -72,7 +73,7 @@ Supporting definitions for handling of MEvents in the functions above.
 > playEvent insts me = 
 >     let x = lookup (eInst me) insts
 >         eSyn = maybe defaultSynth id x
->         sd = toSynth eSyn (ePitch me) (eVol me)
+>         sd = toSynth eSyn (ePitch me) (eVol me) (eParams me)
 >         waitTime = if durDependent eSyn then eDur me + releaseTime eSyn
 >                    else releaseTime eSyn
 >     in  do
