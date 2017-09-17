@@ -1,5 +1,6 @@
 # VividEuterpea
 Play Euterpea Music values through Vivid's real-time audio framework (requires SuperCollider)
+Author: Donya Quick (donyaquick@gmail.com)
 
 How to use:
 1. Install Euterpea. See instructions here: http://www.euterpea.com/
