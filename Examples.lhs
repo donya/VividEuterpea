@@ -1,4 +1,5 @@
 Examples of real-time audio playback of Euterpea values using Vivid
+Donya Quick
 
 > {-# LANGUAGE DataKinds, ExtendedDefaultRules #-}
 > import Vivid hiding (forever, line)
@@ -78,9 +79,12 @@ A variation of Blue Lambda's main motifs
 >             else e1 : eventMerge (e2:es)
 >     eventMerge e = e
 
-Try with: 
+Listen to it using: 
 playXV x4
-Use Ctrl+C then Enter to stop.
+Use Ctrl+C then Enter to stop whenever you want.
+Try writing the first 12 measures to a file like this:
+writeWavV "x4.wav" synthTable $ cut 12 x4
+The usage of cut is important - you can't write an infinitely long value!
 
 ------------------------------
 
@@ -124,5 +128,6 @@ And using a Vivid-based instrument:
 > bellScale = instrument (CustomInstrument "Bell") $ 
 >     addVolume 100 $ line $ map ($qn) [c 5, d 5, e 5, f 5, g 5, a 5, b 5, c 6]
 
-Try with: 
+Try with one of these to play & write respectively: 
 playV synthTable2 bellScale
+writeWavV "bells.wav" synthTable2 bellScale

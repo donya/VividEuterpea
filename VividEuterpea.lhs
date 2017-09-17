@@ -7,6 +7,8 @@ Donya Quick
 > import Euterpea
 > import Control.Exception
 > import Control.DeepSeq
+> import System.Info
+> import WriteNRTWin
 
 The VInstr type takes a note duration (Dur), a pitch number (AbsPitch), 
 and a volume from 0-127 (Volume) and returns a Vivid synthesizer. The 
@@ -81,7 +83,7 @@ Supporting definitions for handling of MEvents in the functions above.
 >             wait (fromRational waitTime)
 >             free s0
      
-> playMEvs :: SynthTable -> PTime -> [MEvent] -> IO ()
+> playMEvs :: VividAction m => SynthTable -> PTime -> [MEvent] -> m ()
 > playMEvs insts cTime [] = return ()
 > playMEvs insts cTime [me] = fork $ do
 >     wait $ fromRational (eTime me - cTime)
@@ -90,4 +92,11 @@ Supporting definitions for handling of MEvents in the functions above.
 >     wait $ fromRational (eTime me1 - cTime)
 >     fork $ playEvent insts me1 
 >     playMEvs insts (eTime me1) (me2:mevs)
+
+Writing to a WAV file
+
+> writeWavV :: (ToMusic1 a) => FilePath -> SynthTable -> Music a -> IO ()
+> writeWavV outFile t m = 
+>     if os == "mingw32" then writeNRTWin outFile (playMEvs t 0 $ perform m)
+>     else writeNRT outFile (playMEvs t 0 $ perform m)
 
