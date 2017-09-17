@@ -1,5 +1,7 @@
 {-
-Modification of WriteNRT to work with Windows
+Modification of WriteNRT to work with Windows.
+This is the code from Vivid.Actions.NRT with just a few tweaks
+for Windows compatibility.
 -}
 
 {-# LANGUAGE BangPatterns #-}
@@ -52,7 +54,7 @@ writeNRTWith' nrtArgs fPath nrtActions = do
    contents <- encodeOSCBundles <$> runNRT nrtActions
 
    --  ${SHELL}
-   --system "scsynth" >>= \case
+   --system "scsynth" >>= \case -- EDIT: couldn't get a Win-compatible version of this check to work
    --   ExitSuccess -> return ()
    --   ExitFailure _ -> error "No 'scsynth' found! Be sure to put it in your $PATH"
    let tempFile = "vivid_nrt_" <> (show . hash) contents <> ".osc"
@@ -73,15 +75,15 @@ writeNRTWith' nrtArgs fPath nrtActions = do
 
    BS.writeFile tempFile contents
    ExitSuccess <- system $ mconcat [
-        --  ${SHELL}
-      --  "/bin/sh -c "
-      --, " \"" -- Note these beginning and ending quotes
+        --  ${SHELL} -- EDIT: this doesn't exist on Win
+      --  "/bin/sh -c " -- EDIT: this doesn't exist on Win
+      --, " \"" -- Note these beginning and ending quotes -- EDIT: don't need quotes on Win
        "scsynth"
       , " -o ", show $ _nrtArgs_numChans nrtArgs
       , " -N "
       , tempFile
-      , " _ ", fPath, " " -- single quotes removed for Windows version
+      , " _ ", fPath, " " -- EDIT: single quotes removed for Windows version
       , show $ _nrtArgs_sampleRate nrtArgs," ", fileType, " int16 "
-      --, " \""
+      --, " \"" -- EDIT: don't need quotes on Win
       ]
    return ()
