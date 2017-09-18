@@ -22,35 +22,35 @@ along with a release AFTER the note-off would occur - which is not something
 that Euterpea's built-in sound synthesis supports.
 
 > sound1 :: VInstr
-> sound1 d ap _ _ = let d' = fromRational d in sd () $ do
+> sound1 d ap _ _ = let d' = fromRational d in sd (1 ::I "gate", 0 ::I "fadeSecs") $ do
 >    wobble <- sinOsc (freq_ 5) ? KR ~* 10
 >    s <- 0.2 ~* sinOsc (freq_ $ midiCPS ap ~+ wobble)
->    e <- envGen (env 1.0 [(1.0, d'), (0.0,0.25)] Curve_Linear) DoNothing
->    out 0 [s ~* e ,s  ~* e]
+>    out 0 [s ~* envGate , s ~* envGate] -- this will expect an EXTERNAL release (External)
 
 > sound2 :: VInstr
-> sound2 d ap _ _ = let d' = fromRational d in sd () $ do
+> sound2 d ap _ _ = let d' = fromRational d in sd (1 ::I "gate", 0 ::I "fadeSecs") $ do
 >    wobble <- sinOsc (freq_ 15) ? KR ~* 30
 >    s <- 0.2 ~* sinOsc (freq_ $ midiCPS ap ~+ wobble)
->    e <- envGen (env 0.0 [(1.0,0.1),(1.0, d'-0.1), (0.0,0.5)] Curve_Linear) DoNothing
+>    e <- envGen (env 0.0 [(1.0,0.1),(1.0, d'-0.1), (0.0,0.5)] Curve_Linear) FreeEnclosing
 >    out 0 [s ~* e ,s  ~* e]
 
 > sound3 :: VInstr
-> sound3 d ap _ _ = let d' = fromRational d in sd () $ do
+> sound3 d ap _ _ = let d' = fromRational d in sd (1 ::I "gate", 0 ::I "fadeSecs") $ do
 >    s <- 0.2 ~* sinOsc (freq_ $ midiCPS ap)
->    e <- envGen (env 0.0 [(1.0,0.01),(1.0, d'-0.01), (0.0,0.25)] Curve_Linear) DoNothing
+>    e <- envGen (env 0.0 [(1.0,0.01),(1.0, d'-0.01), (0.0,0.25)] Curve_Linear) FreeEnclosing
 >    out 0 [s ~* e ,s  ~* e]
 
 Now we construct a table mapping instrument names to the definitions above so that 
 we can construct Music values with instrument assignments.
 
-> synthTable = [(CustomInstrument "Synth1", SynthInfo sound1 0.25 True), 
->               (CustomInstrument "Synth2", SynthInfo sound2 0.5 True), 
->               (CustomInstrument "Synth3", SynthInfo sound3 0.25 True)]
+> synthTable = [(CustomInstrument "Synth1", SynthInfo sound1 0.25 External), 
+>               (CustomInstrument "Synth2", SynthInfo sound2 0.5 Internal), 
+>               (CustomInstrument "Synth3", SynthInfo sound3 0.25 Internal)]
 
 > m1a = instrument (CustomInstrument "Synth1") m1
 > m1b = instrument (CustomInstrument "Synth2") m1
 > m3a = instrument (CustomInstrument "Synth3") m3
+> m3b = instrument (CustomInstrument "Synth1") m3
 
 Finally we'll hear it all together:
 
@@ -110,20 +110,22 @@ The code to create a bell sound in Euterpea:
 And using a Vivid-based instrument:
          
 > bellSynth :: VInstr
-> bellSynth _ ap v _ = let v' = fromIntegral v / 127.0 in sd () $ do
->    x1 <- sinOsc (freq_ $ midiCPS ap)
->    x2 <- sinOsc (freq_ $ midiCPS ap ~* 4.1)
->    x3 <- sinOsc (freq_ $ midiCPS ap ~* 6.05)
->    x4 <- sinOsc (freq_ $ midiCPS ap ~* 8.2)
->    env1 <- envGen (env 1.0 [(0.2, 1.0), (0.0, 2.0)] Curve_Linear) DoNothing
->    env2 <- envGen (env 0.0 [(0.8, 0.5), (0.0, 2.0)] Curve_Linear) DoNothing
->    env3 <- envGen (env 0.0 [(0.5, 0.08), (0.0, 2.0)] Curve_Linear) DoNothing
->    env4 <- envGen (env 0.0 [(0.3, 0.015), (0.0, 1.0)] Curve_Linear) DoNothing
->    envs <- envGen (env 1.0 [(0.5, 0.05), (0.2, 2.0), (0.0, 3.0)] Curve_Linear) DoNothing
->    partials <- ((x1 ~* env1) ~+ (x2 ~* env2) ~+ (x3 ~* env3) ~+ (x4 ~* env4)) ~/ 4
->    out 0 [v' ~* 0.95 ~* envs ~* partials, v' ~* 0.95 ~* envs ~* partials]
+> bellSynth _ ap v _ = 
+>   let v' = fromIntegral v / 127.0 
+>   in sd (1 ::I "gate", 0 ::I "fadeSecs") $ do
+>     x1 <- sinOsc (freq_ $ midiCPS ap)
+>     x2 <- sinOsc (freq_ $ midiCPS ap ~* 4.1)
+>     x3 <- sinOsc (freq_ $ midiCPS ap ~* 6.05)
+>     x4 <- sinOsc (freq_ $ midiCPS ap ~* 8.2)
+>     env1 <- envGen (env 1.0 [(0.2, 1.0), (0.0, 2.0)] Curve_Linear) DoNothing
+>     env2 <- envGen (env 0.0 [(0.8, 0.5), (0.0, 2.0)] Curve_Linear) DoNothing
+>     env3 <- envGen (env 0.0 [(0.5, 0.08), (0.0, 2.0)] Curve_Linear) DoNothing
+>     env4 <- envGen (env 0.0 [(0.3, 0.015), (0.0, 1.0)] Curve_Linear) DoNothing
+>     envs <- envGen (env 1.0 [(0.5, 0.05), (0.2, 2.0), (0.0, 3.0)] Curve_Linear) FreeEnclosing
+>     partials <- ((x1 ~* env1) ~+ (x2 ~* env2) ~+ (x3 ~* env3) ~+ (x4 ~* env4)) ~/ 4
+>     out 0 [v' ~* 0.95 ~* envs ~* partials, v' ~* 0.95 ~* envs ~* partials]
 
-> synthTable2 = [(CustomInstrument "Bell", SynthInfo bellSynth 5.05 False)] 
+> synthTable2 = [(CustomInstrument "Bell", SynthInfo bellSynth 5.05 FixedDuration)] 
 
 > bellScale = instrument (CustomInstrument "Bell") $ 
 >     addVolume 100 $ line $ map ($qn) [c 5, d 5, e 5, f 5, g 5, a 5, b 5, c 6]

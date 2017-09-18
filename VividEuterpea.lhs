@@ -16,15 +16,26 @@ VInstr type mirrors the Instr type used in Euterpea's offline sound
 synthesis.
 
 > type Params = [Double]
-> type VInstr = Dur -> AbsPitch -> Volume -> Params -> SynthDef '[]
+> type VInstr = Dur -> AbsPitch -> Volume -> Params -> SynthDef '["gate", "fadeSecs"]
+
+> data ReleaseType = 
+>     FixedDuration -- sound duration unaffected by note duration (percussive, frees itself)
+>     | Internal -- sound duration handled within synth def with envelopes (frees itself)
+>     | External -- fade out and free expected to be handled externally to synth def
+>     deriving (Eq, Show, Ord, Enum)
+
 > data SynthInfo = SynthInfo {
 >     synthDef :: VInstr, -- sound generation function
 >     releaseTime :: Dur, -- what is the expected release time after note off?
->     durDependent :: Bool -- does the sound depend on note duration? 
+>     releaseType :: ReleaseType -- does the sound depend on note duration? 
 >     }
 
-> toSynth :: SynthInfo -> AbsPitch -> Volume -> Params -> SynthDef '[]
+> toSynth :: SynthInfo -> AbsPitch -> Volume -> Params -> SynthDef '["gate", "fadeSecs"]
 > toSynth e ap v p = (synthDef e) (releaseTime e) ap v p
+
+Notes on ReleaseType:
+- Synthesizers using FixedDuration are expected to NOT free themselves via envelopes. 
+  They will be freed by the playback algorithm. Freeing internally with envelopes 
 
 Lookup table type for synthesizers by an Instrumentname. Note that the 
 durDependent field should be True for sounds with a sustain region. 
@@ -35,15 +46,16 @@ have durDependent=False to avoid excessive cycles being spent on the sound.
 
 A default sound to use if no other synthesizer is defined. The 
 default sound is a sine wave at a given note's frequency with 
-a maximum amplitude of 0.3. The note's duration is ignored.
+a maximum amplitude of 0.3. The note's duration is ignored, 
+meaning that the SynthInfo will have a releaseType of FixedDuration.
 
 > defaultSound :: VInstr
-> defaultSound _ ap _ _ = sd () $ do
+> defaultSound _ ap _ _ = sd (1 ::I "gate", 0 ::I "fadeSecs") $ do
 >    s <- 0.3 ~* sinOsc (freq_ $ midiCPS ap)
->    e <- envGen (env 1.0 [(0.0,0.25)] Curve_Linear) DoNothing
+>    e <- envGen (env 1.0 [(0.0,0.25)] Curve_Linear) FreeEnclosing
 >    out 0 [s ~* e, s ~* e]
 
-> defaultSynth = SynthInfo defaultSound 0.25 False
+> defaultSynth = SynthInfo defaultSound 0.25 FixedDuration
 
 Playback functions for sending to Vivid synths. Sequentially infinite 
 Euterpea values are permitted and Ctrl+C then Enter will exit out of the 
@@ -76,12 +88,18 @@ Supporting definitions for handling of MEvents in the functions above.
 >     let x = lookup (eInst me) insts
 >         eSyn = maybe defaultSynth id x
 >         sd = toSynth eSyn (ePitch me) (eVol me) (eParams me)
->         waitTime = if durDependent eSyn then eDur me + releaseTime eSyn
->                    else releaseTime eSyn
->     in  do
+>         waitTime = if releaseType eSyn == Internal then eDur me + releaseTime eSyn else
+>                    if releaseType eSyn == External then eDur me else releaseTime eSyn
+>     in  if releaseType eSyn == External then do
+>             s0 <- synth sd ()
+>             wait $ fromRational waitTime
+>             set s0 (fromRational (releaseTime eSyn) :: I "fadeSecs")
+>             release s0
+>             wait $ releaseTime eSyn
+>         else do -- for fixed and internal release cases
 >             s0 <- synth sd ()
 >             wait (fromRational waitTime)
->             free s0
+>             -- Note: call to free removed. Synth defs are expected to do this themselves now.
      
 > playMEvs :: VividAction m => SynthTable -> PTime -> [MEvent] -> m ()
 > playMEvs insts cTime [] = return ()
